@@ -29,6 +29,7 @@
 #![forbid(unsafe_code)]
 
 use std::env;
+use std::iter;
 
 pub use crate::macros::*;
 pub use crate::renderers::ScalingRenderer;
@@ -39,7 +40,6 @@ mod macros;
 mod renderers;
 
 /// A logical texture for a window surface.
-#[derive(Debug)]
 pub struct SurfaceTexture {
     surface: wgpu::Surface,
     width: u32,
@@ -49,7 +49,6 @@ pub struct SurfaceTexture {
 /// Represents a 2D pixel buffer with an explicit image resolution.
 ///
 /// See [`PixelsBuilder`] for building a customized pixel buffer.
-#[derive(Debug)]
 pub struct Pixels {
     // WGPU state
     device: wgpu::Device,
@@ -91,6 +90,9 @@ pub enum Error {
     /// No suitable [`wgpu::Adapter`] found
     #[error("No suitable `wgpu::Adapter` found")]
     AdapterNotFound,
+    /// Equivalent to [`wgpu::RequestDeviceError`]
+    #[error("No wgpu::Device found.")]
+    DeviceNotFound(wgpu::RequestDeviceError),
     /// Equivalent to [`wgpu::TimeOut`]
     #[error("The GPU timed out when attempting to acquire the next texture or if a previous output is still alive.")]
     Timeout,
@@ -157,7 +159,7 @@ impl Pixels {
     ///
     /// Panics when `width` or `height` are 0.
     pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture) -> Result<Pixels, Error> {
-        PixelsBuilder::new(width, height, surface_texture).build()
+        pollster::block_on(PixelsBuilder::new(width, height, surface_texture).build())
     }
 
     /// Resize the surface upon which the pixel buffer is rendered.
@@ -201,7 +203,7 @@ impl Pixels {
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
         self.scaling_renderer
             .resize(&mut self.device, &mut encoder, width, height);
-        self.queue.submit(&[encoder.finish()]);
+        self.queue.submit(iter::once(encoder.finish()));
     }
 
     /// Draw this pixel buffer to the configured [`SurfaceTexture`].
@@ -278,41 +280,42 @@ impl Pixels {
         // TODO: Center frame buffer in surface
         let frame = self
             .swap_chain
-            .get_next_texture()
+            .get_next_frame()
             .map_err(|_| Error::Timeout)?;
         let mut encoder = self
             .device
             .create_command_encoder(&wgpu::CommandEncoderDescriptor { label: None });
 
         // Update the pixel buffer texture view
-        let mapped = self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
+        let mut mapped = self.device.create_buffer_mapped(&wgpu::BufferDescriptor {
             label: None,
             size: self.pixels.len() as u64,
             usage: wgpu::BufferUsage::COPY_SRC,
         });
-        mapped.data.copy_from_slice(&self.pixels);
+        mapped.data().copy_from_slice(&self.pixels);
         let buffer = mapped.finish();
 
         encoder.copy_buffer_to_texture(
             wgpu::BufferCopyView {
                 buffer: &buffer,
-                offset: 0,
-                bytes_per_row: self.texture_extent.width * self.texture_format_size,
-                rows_per_image: self.texture_extent.height,
+                layout: wgpu::TextureDataLayout {
+                    offset: 0,
+                    bytes_per_row: self.texture_extent.width * self.texture_format_size,
+                    rows_per_image: self.texture_extent.height,
+                },
             },
             wgpu::TextureCopyView {
                 texture: &self.texture,
                 mip_level: 0,
-                array_layer: 0,
                 origin: wgpu::Origin3d { x: 0, y: 0, z: 0 },
             },
             self.texture_extent,
         );
 
         // Call the users render function.
-        (render_function)(&mut encoder, &frame.view, &self.scaling_renderer);
+        (render_function)(&mut encoder, &frame.output.view, &self.scaling_renderer);
 
-        self.queue.submit(&[encoder.finish()]);
+        self.queue.submit(iter::once(encoder.finish()));
         Ok(())
     }
 
@@ -564,26 +567,32 @@ impl<'req> PixelsBuilder<'req> {
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    pub fn build(self) -> Result<Pixels, Error> {
+    pub async fn build(self) -> Result<Pixels, Error> {
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
         let compatible_surface = Some(&self.surface_texture.surface);
-        let adapter = pollster::block_on(wgpu::Adapter::request(
-            &self.request_adapter_options.map_or_else(
-                || wgpu::RequestAdapterOptions {
-                    compatible_surface,
-                    power_preference: get_default_power_preference(),
-                },
-                |rao| wgpu::RequestAdapterOptions {
-                    compatible_surface: rao.compatible_surface.or(compatible_surface),
-                    power_preference: rao.power_preference,
-                },
-            ),
-            self.backend,
-        ))
-        .ok_or(Error::AdapterNotFound)?;
 
-        let (mut device, queue) =
-            pollster::block_on(adapter.request_device(&self.device_descriptor));
+        let instance = wgpu::Instance::new();
+        let adapter = instance
+            .request_adapter(
+                &self.request_adapter_options.map_or_else(
+                    || wgpu::RequestAdapterOptions {
+                        compatible_surface,
+                        power_preference: get_default_power_preference(),
+                    },
+                    |rao| wgpu::RequestAdapterOptions {
+                        compatible_surface: rao.compatible_surface.or(compatible_surface),
+                        power_preference: rao.power_preference,
+                    },
+                ),
+                self.backend,
+            )
+            .await
+            .ok_or(Error::AdapterNotFound)?;
+
+        let (mut device, queue) = adapter
+            .request_device(&self.device_descriptor, None)
+            .await
+            .map_err(Error::DeviceNotFound)?;
 
         // The rest of this is technically a fixed-function pipeline... For now!
 
@@ -598,7 +607,6 @@ impl<'req> PixelsBuilder<'req> {
         let texture = device.create_texture(&wgpu::TextureDescriptor {
             label: None,
             size: texture_extent,
-            array_layer_count: 1,
             mip_level_count: 1,
             sample_count: 1,
             dimension: wgpu::TextureDimension::D2,

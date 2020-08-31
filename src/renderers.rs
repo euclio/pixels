@@ -2,7 +2,6 @@ use crate::include_spv;
 use ultraviolet::Mat4;
 
 /// The default renderer that scales your frame to the screen size.
-#[derive(Debug)]
 pub struct ScalingRenderer {
     uniform_buffer: wgpu::Buffer,
     bind_group: wgpu::BindGroup,
@@ -31,6 +30,8 @@ impl ScalingRenderer {
             lod_min_clamp: 0.0,
             lod_max_clamp: 1.0,
             compare: wgpu::CompareFunction::Always,
+            anisotropy_clamp: 1,
+            label: Some("pixels"),
         });
 
         // Create uniform buffer
@@ -85,10 +86,7 @@ impl ScalingRenderer {
                 },
                 wgpu::Binding {
                     binding: 2,
-                    resource: wgpu::BindingResource::Buffer {
-                        buffer: &uniform_buffer,
-                        range: 0..64,
-                    },
+                    resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(0..64)),
                 },
             ],
         });
