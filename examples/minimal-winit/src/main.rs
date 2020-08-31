@@ -1,12 +1,11 @@
 #![deny(clippy::all)]
-#![forbid(unsafe_code)]
 
 use log::error;
-use pixels::{wgpu::Surface, Error, Pixels, SurfaceTexture};
+use pixels::{wgpu::Instance, Error, PixelsBuilder, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
+use winit::window::{Window, WindowBuilder};
 use winit_input_helper::WinitInputHelper;
 
 const WIDTH: u32 = 320;
@@ -21,8 +20,7 @@ struct World {
     velocity_y: i16,
 }
 
-fn main() -> Result<(), Error> {
-    env_logger::init();
+async fn run(event_loop: EventLoop<()>, window: Window, mut input: WinitInputHelper) {
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let window = {
@@ -35,11 +33,17 @@ fn main() -> Result<(), Error> {
             .unwrap()
     };
 
+    let instance = Instance::new();
+
     let mut pixels = {
         let window_size = window.inner_size();
-        let surface = Surface::create(&window);
+        let surface = unsafe { instance.create_surface(&window) };
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, surface);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
+            .texture_format(pixels::wgpu::TextureFormat::Bgra8Unorm)
+            .build()
+            .await
+            .unwrap()
     };
     let mut world = World::new();
 
@@ -76,6 +80,37 @@ fn main() -> Result<(), Error> {
         }
     });
 }
+
+fn main() {
+    use winit::platform::web::WindowExtWebSys;
+
+    let event_loop = EventLoop::new();
+    let mut input = WinitInputHelper::new();
+    let window = {
+        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        WindowBuilder::new()
+            .with_title("Hello Pixels")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
+    };
+
+    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+    console_log::init().unwrap();
+
+    web_sys::window()
+        .and_then(|win| win.document())
+        .and_then(|doc| doc.body())
+        .and_then(|body| {
+            body.append_child(&web_sys::Element::from(window.canvas()))
+                .ok()
+        })
+        .unwrap();
+
+    wasm_bindgen_futures::spawn_local(run(event_loop, window, input));
+}
+
 
 impl World {
     /// Create a new `World` instance that can draw a moving box.
