@@ -86,12 +86,7 @@ fn main() {
     {
         std::panic::set_hook(Box::new(console_error_panic_hook::hook));
         console_log::init().unwrap();
-    }
 
-    let run = run(event_loop, window, input);
-
-    #[cfg(target_arch = "wasm32")]
-    {
         use winit::platform::web::WindowExtWebSys;
 
         web_sys::window()
@@ -102,8 +97,12 @@ fn main() {
                     .ok()
             })
             .unwrap();
+    }
 
+    let run = run(event_loop, window, input);
 
+    #[cfg(target_arch = "wasm32")]
+    {
         wasm_bindgen_futures::spawn_local(run);
     }
 
