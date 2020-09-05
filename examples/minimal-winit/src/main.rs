@@ -1,7 +1,7 @@
 #![deny(clippy::all)]
 
 use log::error;
-use pixels::{wgpu::Instance, Error, PixelsBuilder, SurfaceTexture};
+use pixels::{wgpu, Error, PixelsBuilder, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -21,19 +21,7 @@ struct World {
 }
 
 async fn run(event_loop: EventLoop<()>, window: Window, mut input: WinitInputHelper) {
-    let event_loop = EventLoop::new();
-    let mut input = WinitInputHelper::new();
-    let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
-        WindowBuilder::new()
-            .with_title("Hello Pixels")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
-            .unwrap()
-    };
-
-    let instance = Instance::new();
+    let instance = wgpu::Instance::new();
 
     let mut pixels = {
         let window_size = window.inner_size();
@@ -41,7 +29,7 @@ async fn run(event_loop: EventLoop<()>, window: Window, mut input: WinitInputHel
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, surface);
         PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
             .texture_format(pixels::wgpu::TextureFormat::Bgra8Unorm)
-            .build()
+            .build(instance)
             .await
             .unwrap()
     };
@@ -83,7 +71,7 @@ async fn run(event_loop: EventLoop<()>, window: Window, mut input: WinitInputHel
 
 fn main() {
     let event_loop = EventLoop::new();
-    let mut input = WinitInputHelper::new();
+    let input = WinitInputHelper::new();
     let window = {
         let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
         WindowBuilder::new()

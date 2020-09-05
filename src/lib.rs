@@ -139,29 +139,6 @@ impl SurfaceTexture {
 }
 
 impl Pixels {
-    /// Create a pixel buffer instance with default options.
-    ///
-    /// # Examples
-    ///
-    /// ```no_run
-    /// # use pixels::Pixels;
-    /// # let surface = wgpu::Surface::create(&pixels_mocks::RWH);
-    /// # let surface_texture = pixels::SurfaceTexture::new(1024, 768, surface);
-    /// let mut pixels = Pixels::new(320, 240, surface_texture)?;
-    /// # Ok::<(), pixels::Error>(())
-    /// ```
-    ///
-    /// # Errors
-    ///
-    /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    ///
-    /// # Panics
-    ///
-    /// Panics when `width` or `height` are 0.
-    pub fn new(width: u32, height: u32, surface_texture: SurfaceTexture) -> Result<Pixels, Error> {
-        pollster::block_on(PixelsBuilder::new(width, height, surface_texture).build())
-    }
-
     /// Resize the surface upon which the pixel buffer is rendered.
     ///
     /// This does not resize the pixel buffer. The pixel buffer will be fit onto the surface as
@@ -567,11 +544,10 @@ impl<'req> PixelsBuilder<'req> {
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    pub async fn build(self) -> Result<Pixels, Error> {
+    pub async fn build(self, instance: wgpu::Instance) -> Result<Pixels, Error> {
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
         let compatible_surface = Some(&self.surface_texture.surface);
 
-        let instance = wgpu::Instance::new();
         let adapter = instance
             .request_adapter(
                 &self.request_adapter_options.map_or_else(
