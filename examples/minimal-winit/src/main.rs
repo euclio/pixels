@@ -82,8 +82,6 @@ async fn run(event_loop: EventLoop<()>, window: Window, mut input: WinitInputHel
 }
 
 fn main() {
-    use winit::platform::web::WindowExtWebSys;
-
     let event_loop = EventLoop::new();
     let mut input = WinitInputHelper::new();
     let window = {
@@ -96,19 +94,35 @@ fn main() {
             .unwrap()
     };
 
-    std::panic::set_hook(Box::new(console_error_panic_hook::hook));
-    console_log::init().unwrap();
+    #[cfg(target_arch = "wasm32")]
+    {
+        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        console_log::init().unwrap();
+    }
 
-    web_sys::window()
-        .and_then(|win| win.document())
-        .and_then(|doc| doc.body())
-        .and_then(|body| {
-            body.append_child(&web_sys::Element::from(window.canvas()))
-                .ok()
-        })
-        .unwrap();
+    let run = run(event_loop, window, input);
 
-    wasm_bindgen_futures::spawn_local(run(event_loop, window, input));
+    #[cfg(target_arch = "wasm32")]
+    {
+        use winit::platform::web::WindowExtWebSys;
+
+        web_sys::window()
+            .and_then(|win| win.document())
+            .and_then(|doc| doc.body())
+            .and_then(|body| {
+                body.append_child(&web_sys::Element::from(window.canvas()))
+                    .ok()
+            })
+            .unwrap();
+
+
+        wasm_bindgen_futures::spawn_local(run);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        pollster::block_on(run);
+    }
 }
 
 
