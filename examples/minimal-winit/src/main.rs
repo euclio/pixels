@@ -84,7 +84,7 @@ fn main() {
 
     #[cfg(target_arch = "wasm32")]
     {
-        std::panic::set_hook(Box::new(console_error_panic_hook::hook));
+        console_error_panic_hook::set_once();
         console_log::init().unwrap();
 
         use winit::platform::web::WindowExtWebSys;

@@ -167,7 +167,7 @@ impl Pixels {
             &self.surface_texture.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: wgpu::TextureFormat::Bgra8Unorm,
                 width: self.surface_texture.width,
                 height: self.surface_texture.height,
                 present_mode: self.present_mode,
@@ -605,7 +605,7 @@ impl<'req> PixelsBuilder<'req> {
             &surface_texture.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: wgpu::TextureFormat::Bgra8Unorm,
                 width: surface_texture.width,
                 height: surface_texture.height,
                 present_mode,
