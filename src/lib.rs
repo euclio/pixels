@@ -186,12 +186,12 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
     /// # Panics
     ///
     /// Panics when `width` or `height` are 0.
-    pub fn new(
+    pub async fn new(
         width: u32,
         height: u32,
         surface_texture: SurfaceTexture<'win, W>,
     ) -> Result<Pixels<W>, Error> {
-        PixelsBuilder::new(width, height, surface_texture).build()
+        PixelsBuilder::new(width, height, surface_texture).build().await
     }
 
     /// Resize the surface upon which the pixel buffer is rendered.
@@ -222,7 +222,7 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
             &self.context.surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: wgpu::TextureFormat::Bgra8Unorm,
                 width: self.surface_size.width,
                 height: self.surface_size.height,
                 present_mode: self.present_mode,
@@ -606,7 +606,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     /// # Errors
     ///
     /// Returns an error when a [`wgpu::Adapter`] cannot be found.
-    pub fn build(self) -> Result<Pixels<W>, Error> {
+    pub async fn build(self) -> Result<Pixels<W>, Error> {
         let instance = wgpu::Instance::new(self.backend);
 
         // TODO: Use `options.pixel_aspect_ratio` to stretch the scaled texture
@@ -622,10 +622,11 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
                 power_preference: rao.power_preference,
             },
         ));
-        let adapter = pollster::block_on(adapter).ok_or(Error::AdapterNotFound)?;
+        let adapter = adapter.await.ok_or(Error::AdapterNotFound)?;
 
         let (device, queue) =
-            pollster::block_on(adapter.request_device(&self.device_descriptor, None))
+            adapter.request_device(&self.device_descriptor, None)
+                .await
                 .map_err(Error::DeviceNotFound)?;
 
         // The rest of this is technically a fixed-function pipeline... For now!
@@ -663,7 +664,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             &surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: wgpu::TextureFormat::Bgra8Unorm,
                 width: surface_size.width,
                 height: surface_size.height,
                 present_mode,

@@ -19,7 +19,6 @@ include = [
 ]
 
 [dependencies]
-pollster = "0.2"
 raw-window-handle = "0.3"
 thiserror = "1.0"
 ultraviolet = "0.4"

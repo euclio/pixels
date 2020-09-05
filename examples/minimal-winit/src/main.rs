@@ -6,8 +6,9 @@ use pixels::{Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
-use winit::window::WindowBuilder;
+use winit::window::{Window, WindowBuilder};
 use winit_input_helper::WinitInputHelper;
+use wasm_bindgen::prelude::*;
 
 const WIDTH: u32 = 320;
 const HEIGHT: u32 = 240;
@@ -21,24 +22,11 @@ struct World {
     velocity_y: i16,
 }
 
-fn main() -> Result<(), Error> {
-    env_logger::init();
-    let event_loop = EventLoop::new();
-    let mut input = WinitInputHelper::new();
-    let window = {
-        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
-        WindowBuilder::new()
-            .with_title("Hello Pixels")
-            .with_inner_size(size)
-            .with_min_inner_size(size)
-            .build(&event_loop)
-            .unwrap()
-    };
-
+async fn run(event_loop: EventLoop<()>, window: Window, mut input: WinitInputHelper) {
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture)?
+        Pixels::new(WIDTH, HEIGHT, surface_texture).await.expect("could not construct pixels")
     };
     let mut world = World::new();
 
@@ -74,6 +62,51 @@ fn main() -> Result<(), Error> {
             window.request_redraw();
         }
     });
+}
+
+fn main() {
+    let event_loop = EventLoop::new();
+    let mut input = WinitInputHelper::new();
+    let window = {
+        let size = LogicalSize::new(WIDTH as f64, HEIGHT as f64);
+        WindowBuilder::new()
+            .with_title("Hello Pixels")
+            .with_inner_size(size)
+            .with_min_inner_size(size)
+            .build(&event_loop)
+            .unwrap()
+    };
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        console_error_panic_hook::set_once();
+        console_log::init().unwrap();
+
+        use winit::platform::web::WindowExtWebSys;
+
+        web_sys::window()
+            .and_then(|win| win.document())
+            .and_then(|doc| doc.body())
+            .and_then(|body| {
+                body.append_child(&web_sys::Element::from(window.canvas()))
+                    .ok()
+            })
+            .unwrap();
+
+
+    }
+
+    let run = run(event_loop, window, input);
+
+    #[cfg(target_arch = "wasm32")]
+    {
+        wasm_bindgen_futures::spawn_local(run);
+    }
+
+    #[cfg(not(target_arch = "wasm32"))]
+    {
+        pollster::block_on(run);
+    }
 }
 
 impl World {
