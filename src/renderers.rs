@@ -33,6 +33,7 @@ impl ScalingRenderer {
             lod_max_clamp: 1.0,
             compare: None,
             anisotropy_clamp: None,
+            ..Default::default()
         });
 
         // Create uniform buffer
@@ -94,7 +95,11 @@ impl ScalingRenderer {
                 },
                 wgpu::BindGroupEntry {
                     binding: 2,
-                    resource: wgpu::BindingResource::Buffer(uniform_buffer.slice(..)),
+                    resource: wgpu::BindingResource::Buffer {
+                        buffer: &uniform_buffer,
+                        offset: 0,
+                        size: None,
+                    }
                 },
             ],
         });
@@ -123,6 +128,7 @@ impl ScalingRenderer {
                 depth_bias: 0,
                 depth_bias_slope_scale: 0.0,
                 depth_bias_clamp: 0.0,
+                ..Default::default()
             }),
             primitive_topology: wgpu::PrimitiveTopology::TriangleList,
             color_states: &[wgpu::ColorStateDescriptor {
