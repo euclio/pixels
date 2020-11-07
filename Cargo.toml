@@ -22,7 +22,7 @@ include = [
 raw-window-handle = "0.3"
 thiserror = "1.0"
 ultraviolet = "0.4"
-wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "96b70210a87307158da37d0ee8ba69e47318aef8" }
+wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", rev = "a79d90dc1674dc027d18795c1f166d4332319cd4" }
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }

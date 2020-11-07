@@ -774,7 +774,7 @@ fn get_texture_format_size(texture_format: wgpu::TextureFormat) -> f32 {
 fn get_default_power_preference() -> wgpu::PowerPreference {
     env::var("PIXELS_HIGH_PERF").map_or_else(
         |_| {
-            env::var("PIXELS_LOW_POWER").map_or(wgpu::PowerPreference::Default, |_| {
+            env::var("PIXELS_LOW_POWER").map_or(wgpu::PowerPreference::default(), |_| {
                 wgpu::PowerPreference::LowPower
             })
         },
