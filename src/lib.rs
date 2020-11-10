@@ -221,7 +221,7 @@ impl<'win, W: HasRawWindowHandle> Pixels<W> {
         self.context.swap_chain = self.context.device.create_swap_chain(
             &self.context.surface,
             &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
                 format: wgpu::TextureFormat::Bgra8Unorm,
                 width: self.surface_size.width,
                 height: self.surface_size.height,
@@ -663,7 +663,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         let swap_chain = device.create_swap_chain(
             &surface,
             &wgpu::SwapChainDescriptor {
-                usage: wgpu::TextureUsage::OUTPUT_ATTACHMENT,
+                usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
                 format: wgpu::TextureFormat::Bgra8Unorm,
                 width: surface_size.width,
                 height: surface_size.height,
