@@ -105,7 +105,7 @@ pub struct Pixels<W: HasRawWindowHandle> {
 /// A builder to help create customized pixel buffers.
 pub struct PixelsBuilder<'req, 'win, W: HasRawWindowHandle> {
     request_adapter_options: Option<wgpu::RequestAdapterOptions<'req>>,
-    device_descriptor: wgpu::DeviceDescriptor,
+    device_descriptor: wgpu::DeviceDescriptor<'static>,
     backend: wgpu::BackendBit,
     width: u32,
     height: u32,
@@ -526,7 +526,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
     /// Add options for requesting a [`wgpu::Device`].
     pub fn device_descriptor(
         mut self,
-        device_descriptor: wgpu::DeviceDescriptor,
+        device_descriptor: wgpu::DeviceDescriptor<'static>,
     ) -> PixelsBuilder<'req, 'win, W> {
         self.device_descriptor = device_descriptor;
         self
