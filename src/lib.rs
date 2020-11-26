@@ -664,7 +664,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
             &surface,
             &wgpu::SwapChainDescriptor {
                 usage: wgpu::TextureUsage::RENDER_ATTACHMENT,
-                format: wgpu::TextureFormat::Bgra8Unorm,
+                format: self.texture_format,
                 width: surface_size.width,
                 height: surface_size.height,
                 present_mode,
@@ -678,7 +678,7 @@ impl<'req, 'win, W: HasRawWindowHandle> PixelsBuilder<'req, 'win, W> {
         .transform
         .inversed();
 
-        let scaling_renderer = ScalingRenderer::new(&device, &texture_view, &texture_extent);
+        let scaling_renderer = ScalingRenderer::new(&device, &texture_view, &texture_extent, self.texture_format);
 
         let context = PixelsContext {
             device,

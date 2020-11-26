@@ -16,6 +16,7 @@ impl ScalingRenderer {
         device: &wgpu::Device,
         texture_view: &wgpu::TextureView,
         texture_size: &wgpu::Extent3d,
+        texture_format: wgpu::TextureFormat,
     ) -> Self {
         let vs_module = device.create_shader_module(wgpu::include_spirv!("../shaders/vert.spv"));
         let fs_module = device.create_shader_module(wgpu::include_spirv!("../shaders/frag.spv"));
@@ -58,7 +59,7 @@ impl ScalingRenderer {
                     binding: 0,
                     visibility: wgpu::ShaderStage::FRAGMENT,
                     ty: wgpu::BindingType::SampledTexture {
-                        component_type: wgpu::TextureComponentType::Uint,
+                        component_type: wgpu::TextureComponentType::Float,
                         multisampled: false,
                         dimension: wgpu::TextureViewDimension::D2,
                     },
@@ -132,7 +133,7 @@ impl ScalingRenderer {
             }),
             primitive_topology: wgpu::PrimitiveTopology::TriangleList,
             color_states: &[wgpu::ColorStateDescriptor {
-                format: wgpu::TextureFormat::Bgra8UnormSrgb,
+                format: texture_format,
                 color_blend: wgpu::BlendDescriptor::REPLACE,
                 alpha_blend: wgpu::BlendDescriptor::REPLACE,
                 write_mask: wgpu::ColorWrite::ALL,

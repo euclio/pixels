@@ -2,7 +2,7 @@
 #![forbid(unsafe_code)]
 
 use log::error;
-use pixels::{Error, Pixels, SurfaceTexture};
+use pixels::{PixelsBuilder, wgpu, Error, Pixels, SurfaceTexture};
 use winit::dpi::LogicalSize;
 use winit::event::{Event, VirtualKeyCode};
 use winit::event_loop::{ControlFlow, EventLoop};
@@ -26,7 +26,11 @@ async fn run(event_loop: EventLoop<()>, window: Window, mut input: WinitInputHel
     let mut pixels = {
         let window_size = window.inner_size();
         let surface_texture = SurfaceTexture::new(window_size.width, window_size.height, &window);
-        Pixels::new(WIDTH, HEIGHT, surface_texture).await.expect("could not construct pixels")
+        PixelsBuilder::new(WIDTH, HEIGHT, surface_texture)
+            .texture_format(wgpu::TextureFormat::Bgra8Unorm)
+            .build()
+            .await
+            .expect("could not construct pixels")
     };
     let mut world = World::new();
 
