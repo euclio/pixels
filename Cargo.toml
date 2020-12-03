@@ -22,7 +22,7 @@ include = [
 raw-window-handle = "0.3"
 thiserror = "1.0"
 ultraviolet = "0.4"
-wgpu = { git = "https://github.com/gfx-rs/wgpu-rs" }
+wgpu = { git = "https://github.com/gfx-rs/wgpu-rs", branch = "gecko" }
 
 [dev-dependencies]
 pixels-mocks = { path = "internals/pixels-mocks" }
@@ -33,9 +33,3 @@ members = [
     "examples/*",
     "internals/*",
 ]
-
-[patch.crates-io]
-wasm-bindgen = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "316c5a70fdc4a052fb65ef82bf02d52107b5671b" }
-wasm-bindgen-futures = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "316c5a70fdc4a052fb65ef82bf02d52107b5671b" }
-web-sys = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "316c5a70fdc4a052fb65ef82bf02d52107b5671b" }
-js-sys = { git = "https://github.com/rustwasm/wasm-bindgen", rev = "316c5a70fdc4a052fb65ef82bf02d52107b5671b" }
